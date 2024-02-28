@@ -11,8 +11,8 @@
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-const char *ssid = "TRUSTKISIA-TECH";
-const char *password = "37526308";
+const char *ssid = "Mwarandus Lab";
+const char *password = "30010231";
 
 HardwareSerial gpsSerial(2);
 
@@ -124,7 +124,7 @@ void sendTagToServer(uint32_t tagID, float latitude, float longitude) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient http;
-    String serverURL = "http://abdikadirstudenttracker/upload.php";
+    String serverURL = "http://moscoinnovators/test.php";
     http.begin(client, serverURL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     // Prepare data to send to the server
