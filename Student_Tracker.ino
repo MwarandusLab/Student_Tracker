@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <MFRC522.h>
-#include <TinyGPS++.h>
+//#include <TinyGPS++.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <LiquidCrystal.h>
@@ -11,22 +11,35 @@
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-const char *ssid = "Mwarandus Lab";
-const char *password = "30010231";
+const char* ssid = "TRUSTKISIA-TECH";
+const char* password = "37526308";
 
-HardwareSerial gpsSerial(2);
+//HardwareSerial gpsSerial(2);
+WiFiClient client;
 
-#define GPS_RX_PIN 16
-#define GPS_TX_PIN 17
+const char* serverURL = "https://abdikadirstudenttracker.com";
+
+//#define GPS_RX_PIN 16
+//#define GPS_TX_PIN 17
 
 int Buzzer = 13;
+int tracker_1 = 0;
+int tracker_2 = 0;
+int tracker_3 = 0;
 
-TinyGPSPlus gps;
+//TinyGPSPlus gps;
 
 uint32_t tagID = 0;
 
 float latitude = 0.0;   // Declare latitude as a global variable
 float longitude = 0.0;  // Declare longitude as a global variable
+
+enum State {
+  IDLE,
+  SCAN_TAG
+};
+
+State currentState = IDLE;
 
 const int rs = 32, en = 33, d4 = 25, d5 = 26, d6 = 27, d7 = 14;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -37,7 +50,7 @@ void setup() {
   WiFi.begin(ssid, password);
   SPI.begin();      // init SPI bus
   rfid.PCD_Init();  // init MFRC522
-  gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  //gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
 
   digitalWrite(Buzzer, LOW);
   lcd.begin(20, 4);
@@ -66,16 +79,24 @@ void setup() {
 }
 
 void loop() {
+  switch (currentState) {
+    case IDLE:
+      idle();
+      break;
+    case SCAN_TAG:
+      scan_tag();
+      break;
+  }
+}
+void idle() {
+  scan_tag();
   lcd.clear();
   lcd.setCursor(6, 1);
   lcd.print("SCAN TAG");
   delay(1000);
   digitalWrite(Buzzer, LOW);
-
-  while (gpsSerial.available() > 0) {
-    gps.encode(gpsSerial.read());
-  }
-
+}
+void scan_tag() {
   if (rfid.PICC_IsNewCardPresent()) {  // new tag is available
     if (rfid.PICC_ReadCardSerial()) {  // NUID has been read
       MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
@@ -96,108 +117,194 @@ void loop() {
       // Now, `tag` contains the UID as an integer
       Serial.print("Tag as Integer: ");
       Serial.println(tagID);
-
+      if (tagID == 1139462418 && tracker_1 == 0) {
+        Serial.println("Abdikadir Board the Bus");
+        float longitude = 4.67043689;
+        float latitude = 6.89323241;
+        tracker_1 = 1;
+        sendToServer("/verify.php", String(tagID), latitude, longitude);
+      } else if (tagID == 3822428685 && tracker_1 == 1) {
+        Serial.println("Abdikadir Alight the Bus Undefined Location");
+        float longitude = generateRandomLongitude();
+        float latitude = generateRandomLatitude();
+        tagID = 871258787;
+        sendToServer("/verify.php", String(tagID), latitude, longitude);
+        tracker_1 = 3;
+      } else if (tagID == 1139462418 && tracker_1 == 1) {
+        Serial.println("Abdikadir Alight the Bus");
+        float longitude = 8.67043689;
+        float latitude = 12.89323241;
+        tracker_1 = 2;
+        sendToServer("/verify.php", String(tagID), latitude, longitude);
+      } else if (tagID == 2477708826 && tracker_2 == 0) {
+        Serial.println("Mohammed Board the Bus");
+        float longitude = 4.67043689;
+        float latitude = 6.89323241;
+        sendToServer("/verify_1.php", String(tagID), latitude, longitude);
+        tracker_2 = 1;
+      } else if (tagID == 601040632 && tracker_2 == 1) {
+        Serial.println("Mohammed Alight the Bus Undefined Location");
+        float longitude = generateRandomLongitude();
+        float latitude = generateRandomLatitude();
+        tracker_2 = 0;
+        sendToServer("/verify_1.php", String(tagID), latitude, longitude);
+      } else if (tagID == 2477708826 && tracker_2 == 1) {
+        Serial.println("Mohammed Alight the Bus");
+        float longitude = 8.67043689;
+        float latitude = 12.89323241;
+        tracker_2 = 0;
+        sendToServer("/verify_1.php", String(tagID), latitude, longitude);
+      } else if (tagID == 2206945955 && tracker_3 == 0) {
+        Serial.println("Abuu Board the Bus");
+        float longitude = 12.89323241;
+        float latitude = 8.67043689;
+        tracker_3 = 1;
+        sendToServer("/verify_2.php", String(tagID), longitude, latitude);
+      } else if (tagID == 2363502666 && tracker_3 == 1) {
+        Serial.println("Abuu Alight the Bus Undefined Location");
+        float longitude = generateRandomLongitude();
+        float latitude = generateRandomLatitude();
+        tagID = 2206945955;
+        tracker_3 = 3;
+        sendToServer("/verify_2.php", String(tagID), latitude, longitude);
+      } else if (tagID == 2206945955 && tracker_3 == 1) {
+        Serial.println("Abuu Alight the Bus");
+        float longitude = 6.89043689;
+        float latitude = 4.67323241;
+        tracker_3 = 2;
+        sendToServer("/verify_2.php", String(tagID), latitude, longitude);
+      }
       rfid.PICC_HaltA();       // halt PICC
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
-      
-      // Check if a valid GPS fix is available
-      if (gps.location.isValid()) {
-        latitude = gps.location.lat();
-        longitude = gps.location.lng();
-
-        // Print GPS data for debugging
-        // Serial.print("Latitude: ");
-        // Serial.println(latitude, 6);
-        // Serial.print("Longitude: ");
-        // Serial.println(longitude, 6);
-        // delay(1000);
-
-        // Call the sendTagToServer function here to send the tag and GPS data
-        sendTagToServer(tagID, latitude, longitude);
-      }
     }
   }
 }
-void sendTagToServer(uint32_t tagID, float latitude, float longitude) {
-  // Check if latitude and longitude are valid and non-zero
-  if (latitude == 0.0 || longitude == 0.0) {
-    WiFiClientSecure client;
-    client.setInsecure();
-    HTTPClient http;
-    String serverURL = "http://moscoinnovators/test.php";
-    http.begin(client, serverURL);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    // Prepare data to send to the server
-    String postData = "tag=" + String(tagID) + "&latitude=" + String(latitude, 6) + "&longitude=" + String(longitude, 6);
+void sendToServer(String endpoint, String tagID, float latitude, float longitude) {
+  HTTPClient http;
 
-    int httpResponseCode = http.POST(postData);
-    if (httpResponseCode > 0) {
-      digitalWrite(Buzzer, LOW);
-      Serial.printf("Tag sent to server. HTTP Response code: %d\n", httpResponseCode);
-      Serial.println("Tag Send Successfully");
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("TAG: ");
-      lcd.setCursor(5, 0);
-      lcd.print(tagID);
-      lcd.setCursor(0, 1);
-      lcd.print("SENDING...");
-      delay(2000);
+  // Construct URL with query parameters
+  String url = serverURL + endpoint + "?tagID=" + tagID + "&longitude=" + String(longitude) + "&latitude=" + String(latitude);
 
-      // Wait for the server response
-      while (!client.available()) {
-        delay(10);
-      }
+  // Print the URL
+  Serial.println("Sending GET request to: " + url);
 
-      // Parse the JSON response
-      DynamicJsonDocument jsonBuffer(256);
-      String response = client.readString();
-      DeserializationError error = deserializeJson(jsonBuffer, response);
+  // Make HTTP GET request
+  http.begin(url);
 
-      if (error) {
-        Serial.println("JSON parsing error");
-      }
+  // Make HTTP GET request
+  int httpResponseCode = http.GET();
 
-      // Check if the tagID is available in the database
-      bool tagAvailable = jsonBuffer["tag_available"];
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println("HTTP Response: " + response);
 
-      if (tagAvailable) {
-        digitalWrite(Buzzer, LOW);
-        Serial.println("Tag Found!");
-        lcd.clear();
-        lcd.setCursor(4, 0);
-        lcd.print("TAG FOUND");
-        lcd.setCursor(0, 1);
-        lcd.print("Name: ");
-        lcd.print(jsonBuffer["student_lastname"].as<String>());
-        delay(1000);  // Display the name for 5 seconds
-      } else {
-        digitalWrite(Buzzer, HIGH);
-        Serial.println("Tag Not Found");
-        lcd.clear();
-        lcd.setCursor(2, 0);
-        lcd.print("TAG NOT FOUND");
-        delay(500);
-      }
-    } else {
-      digitalWrite(Buzzer, HIGH);
-      Serial.println("Error sending tag to server.");
-      lcd.clear();
-      lcd.setCursor(6, 0);
-      lcd.print("ERROR");
-      lcd.setCursor(3, 1);
-      lcd.print("SENDING DATA");
-      delay(500);
+    // Parse JSON response
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, response);
+
+    if (error) {
+      Serial.println("Failed to parse JSON");
+      return;
     }
-    http.end();
+
+    const char* status = doc["status"];
+    const char* firstName = doc["first_name"];
+    const char* lastName = doc["last_name"];
+
+    // Check status
+    if (strcmp(status, "success") == 0) {
+      // Tag ID found, print first name and last name
+      Serial.print("First Name: ");
+      Serial.println(firstName);
+      Serial.print("Last Name: ");
+      Serial.println(lastName);
+      if (strcmp(firstName, "Abdikadir") == 0 && tracker_1 == 1) {
+        Serial.println("Hello Abdikadir boarding");
+        lcd.clear();
+        lcd.setCursor(3, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(6,3);
+        lcd.print("BOARDING");
+        delay(3000);
+      } else if (strcmp(firstName, "Abdikadir") == 0 && tracker_1 == 2) {
+        Serial.println("Hello Abdikadir alighting");
+        lcd.clear();
+        lcd.setCursor(3, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(5,3);
+        lcd.print("ALIGHTING");
+        delay(3000);
+        tracker_1 = 0;
+        currentState = IDLE;
+      } else if (strcmp(firstName, "Abdikadir") == 0 && tracker_1 == 3) {
+        Serial.println("Hello Abdikadir Undefined Location");
+        lcd.clear();
+        lcd.setCursor(3, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(1,3);
+        lcd.print("UNDEFINED LOCATION");
+        delay(3000);
+        tracker_1 = 0;
+        currentState = IDLE;
+      }
+      if (strcmp(firstName, "Abuu") == 0 && tracker_3 == 1) {
+        Serial.println("Hello Abuu boarding");
+        lcd.clear();
+        lcd.setCursor(5, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(6,3);
+        lcd.print("BOARDING");
+        delay(3000);
+      } else if (strcmp(firstName, "Abuu") == 0 && tracker_3 == 2) {
+        Serial.println("Hello Abuu alighting");
+        lcd.clear();
+        lcd.setCursor(5, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(5,3);
+        lcd.print("ALIGHTING");
+        delay(3000);
+        tracker_3 = 0;
+        currentState = IDLE;
+      } else if (strcmp(firstName, "Abuu") == 0 && tracker_3 == 3) {
+        Serial.println("Hello Abuu Undefined");
+        lcd.clear();
+        lcd.setCursor(5, 2);
+        lcd.print(firstName);
+        lcd.print(" ");
+        lcd.print(lastName);
+        lcd.setCursor(1,3);
+        lcd.print("UNDEFINED LOCATION");
+        delay(3000);
+        tracker_3 = 0;
+        currentState = IDLE;
+      }
+
+    } else {
+      // Tag ID not found or error
+      Serial.println("Tag ID not found or error occurred");
+    }
   } else {
-    digitalWrite(Buzzer, LOW);
-    Serial.println("Invalid or zero latitude/longitude, data not sent to server.");
-    lcd.clear();
-    lcd.setCursor(5, 0);
-    lcd.print("INVALID");
-    lcd.setCursor(2, 1);
-    lcd.print("LOCATION INFO");
-    delay(500);
+    Serial.println("HTTP Request failed");
   }
+
+  http.end();
+}
+
+
+float generateRandomLatitude() {
+  return random(532819223, 1177843089) / 100000000.0;
+}
+
+float generateRandomLongitude() {
+  return random(532819223, 1177843089) / 100000000.0;
 }
