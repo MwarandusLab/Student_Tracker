@@ -5,14 +5,15 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <LiquidCrystal.h>
+#include <HardwareSerial.h>
 
 #define SS_PIN 5    // ESP32 pin GPIO5
 #define RST_PIN 22  // ESP32 pin GPIO27
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-const char* ssid = "TRUSTKISIA-TECH";
-const char* password = "37526308";
+const char* ssid = "Dadir";
+const char* password = "09 hxmza";
 
 //HardwareSerial gpsSerial(2);
 WiFiClient client;
@@ -41,11 +42,17 @@ enum State {
 
 State currentState = IDLE;
 
+HardwareSerial GSM(1);
+
 const int rs = 32, en = 33, d4 = 25, d5 = 26, d6 = 27, d7 = 14;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 void setup() {
   Serial.begin(9600);
+  delay(10000);
+  GSM.begin(9600, SERIAL_8N1, 16, 17);
+  delay(1000);
+
   pinMode(Buzzer, OUTPUT);
   WiFi.begin(ssid, password);
   SPI.begin();      // init SPI bus
@@ -76,6 +83,13 @@ void setup() {
   lcd.setCursor(1, 2);
   lcd.print("IP: " + WiFi.localIP().toString());
   delay(3000);
+
+  GSM.println("AT");  // Send a basic AT command to test communication
+  delay(1000);
+  if (GSM.available()) {
+    String response = GSM.readString();
+    Serial.println("GSM Response: " + response);
+  }
 }
 
 void loop() {
@@ -119,58 +133,87 @@ void scan_tag() {
       Serial.println(tagID);
       if (tagID == 1139462418 && tracker_1 == 0) {
         Serial.println("Abdikadir Board the Bus");
-        float longitude = 4.67043689;
-        float latitude = 6.89323241;
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
+        float longitude = 37.09;
+        float latitude = -1.05;
         tracker_1 = 1;
         sendToServer("/verify.php", String(tagID), latitude, longitude);
-      } else if (tagID == 3822428685 && tracker_1 == 1) {
+      } else if (tagID == 2477708826 && tracker_1 == 1) {
         Serial.println("Abdikadir Alight the Bus Undefined Location");
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
         float longitude = generateRandomLongitude();
         float latitude = generateRandomLatitude();
-        tagID = 871258787;
-        sendToServer("/verify.php", String(tagID), latitude, longitude);
+        tagID = 1139462418;
         tracker_1 = 3;
+        sendSMS("+254720277892", "Hello Abdikadir's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent1.php");
+        sendToServer("/verify.php", String(tagID), latitude, longitude);
       } else if (tagID == 1139462418 && tracker_1 == 1) {
         Serial.println("Abdikadir Alight the Bus");
-        float longitude = 8.67043689;
-        float latitude = 12.89323241;
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
+        float longitude = 37.08;
+        float latitude = -1.03;
         tracker_1 = 2;
         sendToServer("/verify.php", String(tagID), latitude, longitude);
-      } else if (tagID == 2477708826 && tracker_2 == 0) {
+      } else if (tagID == 3822428685 && tracker_2 == 0) {
         Serial.println("Mohammed Board the Bus");
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
         float longitude = 4.67043689;
         float latitude = 6.89323241;
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
         tracker_2 = 1;
       } else if (tagID == 601040632 && tracker_2 == 1) {
         Serial.println("Mohammed Alight the Bus Undefined Location");
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
         float longitude = generateRandomLongitude();
         float latitude = generateRandomLatitude();
         tracker_2 = 0;
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
       } else if (tagID == 2477708826 && tracker_2 == 1) {
         Serial.println("Mohammed Alight the Bus");
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
         float longitude = 8.67043689;
         float latitude = 12.89323241;
         tracker_2 = 0;
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
       } else if (tagID == 2206945955 && tracker_3 == 0) {
         Serial.println("Abuu Board the Bus");
-        float longitude = 12.89323241;
-        float latitude = 8.67043689;
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
+        float longitude = 37.09;
+        float latitude = -1.05;
         tracker_3 = 1;
-        sendToServer("/verify_2.php", String(tagID), longitude, latitude);
+        sendToServer("/verify_2.php", String(tagID), latitude, longitude);
       } else if (tagID == 2363502666 && tracker_3 == 1) {
         Serial.println("Abuu Alight the Bus Undefined Location");
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
         float longitude = generateRandomLongitude();
         float latitude = generateRandomLatitude();
         tagID = 2206945955;
         tracker_3 = 3;
+        sendSMS("+254740915820", "Hello Abuu's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent2.php");
         sendToServer("/verify_2.php", String(tagID), latitude, longitude);
       } else if (tagID == 2206945955 && tracker_3 == 1) {
         Serial.println("Abuu Alight the Bus");
-        float longitude = 6.89043689;
-        float latitude = 4.67323241;
+        digitalWrite(Buzzer, HIGH);
+        delay(3000);
+        digitalWrite(Buzzer, LOW);
+        float longitude = 37.08;
+        float latitude = -1.03;
         tracker_3 = 2;
         sendToServer("/verify_2.php", String(tagID), latitude, longitude);
       }
@@ -225,7 +268,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(6,3);
+        lcd.setCursor(6, 3);
         lcd.print("BOARDING");
         delay(3000);
       } else if (strcmp(firstName, "Abdikadir") == 0 && tracker_1 == 2) {
@@ -235,7 +278,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(5,3);
+        lcd.setCursor(5, 3);
         lcd.print("ALIGHTING");
         delay(3000);
         tracker_1 = 0;
@@ -247,7 +290,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(1,3);
+        lcd.setCursor(1, 3);
         lcd.print("UNDEFINED LOCATION");
         delay(3000);
         tracker_1 = 0;
@@ -260,7 +303,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(6,3);
+        lcd.setCursor(6, 3);
         lcd.print("BOARDING");
         delay(3000);
       } else if (strcmp(firstName, "Abuu") == 0 && tracker_3 == 2) {
@@ -270,7 +313,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(5,3);
+        lcd.setCursor(5, 3);
         lcd.print("ALIGHTING");
         delay(3000);
         tracker_3 = 0;
@@ -282,7 +325,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.print(firstName);
         lcd.print(" ");
         lcd.print(lastName);
-        lcd.setCursor(1,3);
+        lcd.setCursor(1, 3);
         lcd.print("UNDEFINED LOCATION");
         delay(3000);
         tracker_3 = 0;
@@ -299,12 +342,48 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
 
   http.end();
 }
+void sendSMS(const char* phoneNumber, const char* message) {
+  Serial.println("Sending SMS...");
 
+  // Set GSM module to Text Mode
+  GSM.println("AT+CMGF=1");
+  delay(1000);
+  if (GSM.available()) {
+    String response = GSM.readString();
+    Serial.println("Set Text Mode Response: " + response);
+  }
+
+  // Start SMS command
+  GSM.print("AT+CMGS=\"");
+  GSM.print(phoneNumber);  // Add the recipient phone number
+  GSM.println("\"");
+  delay(1000);
+  if (GSM.available()) {
+    String response = GSM.readString();
+    Serial.println("Phone Number Response: " + response);
+  }
+
+  // Add the SMS text message
+  GSM.print(message);
+  delay(1000);
+
+  // End SMS with CTRL+Z (ASCII code 26)
+  GSM.write(26);
+  delay(5000);  // Wait for the SMS to be sent
+
+  // Check GSM module response
+  if (GSM.available()) {
+    String response = GSM.readString();
+    Serial.println("GSM Response: " + response);
+  }
+
+  Serial.println("SMS sent!");
+}
 
 float generateRandomLatitude() {
-  return random(532819223, 1177843089) / 100000000.0;
+  return random(3600000, 3784308) / 100000.0;
 }
 
 float generateRandomLongitude() {
-  return random(532819223, 1177843089) / 100000000.0;
+  return random(-1033611, -1093611) / 1000000.0;
 }
