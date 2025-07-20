@@ -8,7 +8,7 @@
 #include <HardwareSerial.h>
 
 #define SS_PIN 5    // ESP32 pin GPIO5
-#define RST_PIN 22  // ESP32 pin GPIO27
+#define RST_PIN 21  // ESP32 pin GPIO21
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
