@@ -37,7 +37,8 @@ float longitude = 0.0;  // Declare longitude as a global variable
 
 enum State {
   IDLE,
-  SCAN_TAG
+  SCAN_TAG,
+  RESET
 };
 
 State currentState = IDLE;
@@ -100,6 +101,9 @@ void loop() {
     case SCAN_TAG:
       scan_tag();
       break;
+    case RESET:
+      reset();
+      break;
   }
 }
 void idle() {
@@ -140,7 +144,7 @@ void scan_tag() {
         float latitude = -1.05;
         tracker_1 = 1;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify.php", String(tagID), latitude, longitude);
@@ -154,11 +158,11 @@ void scan_tag() {
         tagID = 1139462418;
         tracker_1 = 3;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
-        sendSMS("+254720277892", "Hello Abdikadir's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent1.php");
         sendToServer("/verify.php", String(tagID), latitude, longitude);
+        sendSMS("+254720277892", "Hello Abdikadir's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent1.php");
       } else if (tagID == 1139462418 && tracker_1 == 1) {
         Serial.println("Abdikadir Alight the Bus");
         digitalWrite(Buzzer, HIGH);
@@ -168,7 +172,7 @@ void scan_tag() {
         float latitude = -1.03;
         tracker_1 = 2;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify.php", String(tagID), latitude, longitude);
@@ -180,7 +184,7 @@ void scan_tag() {
         float longitude = 4.67043689;
         float latitude = 6.89323241;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
@@ -194,7 +198,7 @@ void scan_tag() {
         float latitude = generateRandomLatitude();
         tracker_2 = 0;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
@@ -207,7 +211,7 @@ void scan_tag() {
         float latitude = 12.89323241;
         tracker_2 = 0;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify_1.php", String(tagID), latitude, longitude);
@@ -220,7 +224,7 @@ void scan_tag() {
         float latitude = -1.05;
         tracker_3 = 1;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify_2.php", String(tagID), latitude, longitude);
@@ -234,11 +238,11 @@ void scan_tag() {
         tagID = 2206945955;
         tracker_3 = 3;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
-        sendSMS("+254740915820", "Hello Abuu's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent2.php");
         sendToServer("/verify_2.php", String(tagID), latitude, longitude);
+        sendSMS("+254740915820", "Hello Abuu's Parent we are notifying you of your child alighting to uknown location. Kindly click the link to see his current location https://abdikadirstudenttracker.com/Parents/parent2.php");
       } else if (tagID == 2206945955 && tracker_3 == 1) {
         Serial.println("Abuu Alight the Bus");
         digitalWrite(Buzzer, HIGH);
@@ -248,7 +252,7 @@ void scan_tag() {
         float latitude = -1.03;
         tracker_3 = 2;
         lcd.clear();
-        lcd.setCursor(1, 2);
+        lcd.setCursor(3, 2);
         lcd.print("PLEASE WAIT...");
         delay(500);
         sendToServer("/verify_2.php", String(tagID), latitude, longitude);
@@ -329,8 +333,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.setCursor(1, 3);
         lcd.print("UNDEFINED LOCATION");
         delay(3000);
-        tracker_1 = 0;
-        currentState = IDLE;
+        currentState = RESET;
       }
       if (strcmp(firstName, "Abuu") == 0 && tracker_3 == 1) {
         Serial.println("Hello Abuu boarding");
@@ -364,8 +367,7 @@ void sendToServer(String endpoint, String tagID, float latitude, float longitude
         lcd.setCursor(1, 3);
         lcd.print("UNDEFINED LOCATION");
         delay(3000);
-        tracker_3 = 0;
-        currentState = IDLE;
+        currentState = RESET;
       }
 
     } else {
@@ -415,7 +417,15 @@ void sendSMS(const char* phoneNumber, const char* message) {
 
   Serial.println("SMS sent!");
 }
-
+void reset(){
+  if(tracker_3 == 3){
+    tracker_3 = 0;
+    currentState = IDLE;
+  }else if (tracker_1 == 3){
+    tracker_1 = 0;
+    currentState = IDLE;
+  }
+}
 float generateRandomLatitude() {
   return random(3600000, 3784308) / 100000.0;
 }
